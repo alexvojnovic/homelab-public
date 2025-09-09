@@ -1,0 +1,21 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    email: $YOUR_EMAIL_ADDRESS
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    server: https://acme-v02.api.letsencrypt.org/directory
+    solvers:
+    - dns01:
+        route53:
+          accessKeyID: $YOUR_AWS_ACCESS_KEY_ID
+          region: $YOUR_AWS_REGION
+          secretAccessKeySecretRef:
+            key: secret-access-key
+            name: $YOUR_ROUTE53_CREDENTIALS_SECRET_NAME
+      selector:
+        dnsZones:
+        - $YOUR_DOMAIN_NAME.com

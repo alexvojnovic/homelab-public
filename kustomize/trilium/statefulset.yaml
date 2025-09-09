@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: trilium-notes
+    app.kubernetes.io/name: trilium-notes
+    argocd.argoproj.io/instance: trilium-notes
+  name: trilium-notes
+  namespace: trilium
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: trilium-notes
+      app.kubernetes.io/name: trilium-notes
+  serviceName: trilium-notes-headless
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: trilium-notes
+        app.kubernetes.io/name: trilium-notes
+    spec:
+      containers:
+        - env:
+            - name: TRILIUM_DATA_DIR
+              value: /srv/trilium-data
+          image: zadam/trilium:0.47.2
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+          name: trilium-notes
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+          resources: {}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            runAsUser: 10000
+          volumeMounts:
+            - mountPath: /srv/trilium-data
+              name: trilium-data
+      securityContext:
+        fsGroup: 10000
+      serviceAccountName: trilium-notes
+  volumeClaimTemplates:
+    - metadata:
+        name: trilium-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 2Gi

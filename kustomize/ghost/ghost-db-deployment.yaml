@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ghost-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ghost-db
+  template:
+    metadata:
+      labels:
+        app: ghost-db
+    spec:
+      containers:
+        - name: mariadb
+          image: mariadb:11
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ghost-db-secret
+                  key: password
+            - name: MYSQL_DATABASE
+              value: ghost
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ghost-db-secret
+                  key: username
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ghost-db-secret
+                  key: password
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: db-data
+      volumes:
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: ghost-db-pvc

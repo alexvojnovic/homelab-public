@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: boilerplate-shop
+spec:
+  selector:
+    matchLabels:
+      app: boilerplate-shop
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: boilerplate-shop
+    spec:
+      containers:
+        - name: server
+          image: $YOUR_ARTIFACT_REGISTRY_URL/boilerplate/boilerplate:latest
+          command: ["node"]
+          args:
+            - "dist/index.js"
+          env:
+            - name: PUBLIC_HOST
+              value: "https://api.$YOUR_DOMAIN_NAME.org"
+            - name: PORT
+              value: "3000"
+            - name: DB_HOST
+              value: 127.0.0.1
+          ports:
+            - containerPort: 3000
+
+        - name: worker
+          image: $YOUR_ARTIFACT_REGISTRY_URL/boilerplate/boilerplate:latest
+          imagePullPolicy: Always
+          command: ["node"]
+          args:
+            - "dist/index-worker.js"
+          env:
+            - name: PUBLIC_HOST
+              value: "https://api.$YOUR_DOMAIN_NAME.org"
+            - name: PORT
+              value: "3000"
+            - name: DB_HOST
+              value: 127.0.0.1
+          ports:
+            - containerPort: 3000

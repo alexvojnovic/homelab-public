@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ghost-ingress
+  annotations:
+    cert-manager.io/issuer: letsencrypt-prod
+    kubernetes.io/tls-acme: "true"
+    acme.cert-manager.io/http01-edit-in-place: "true"
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - blog.$YOUR_DOMAIN_NAME.com
+      secretName: ghost-tls
+  rules:
+  - host: "blog.$YOUR_DOMAIN_NAME.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ghost-service
+            port:
+              number: 81

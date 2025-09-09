@@ -1,0 +1,138 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: monitoring
+    server: https://kubernetes.default.svc
+  project: default
+  revisionHistoryLimit: 3
+  ignoreDifferences:
+  - kind: PersistentVolumeClaim
+    jqPathExpressions:
+    -  .spec.persistentVolumeReclaimPolicy
+  sources:
+  - repoURL:  https://github.com/$YOUR_GITHUB_USERNAME/$YOUR_REPO_NAME.git
+    targetRevision: HEAD
+    ref: main
+  - repoURL: https://grafana.github.io/helm-charts
+    chart: grafana
+    targetRevision: 6.52.2
+    helm:
+      values: |
+        grafanaProtocol: https
+        persistence:
+          enabled: true
+          type: pvc
+          persistentVolumeReclaimPolicy: Retain
+        ## Use an existing secret for the admin user.
+        admin:
+          ## Name of the secret. Can be templated.
+          existingSecret: "grafana-admin"
+          userKey: admin-user
+          passwordKey: admin-password
+        server:
+          ## The full public facing url you use in browser, used for redirects and emails
+          root_url: https://YOUR_DOMAIN_NAME.com
+        # https://grafana.com/docs/grafana/latest/auth/github/#enable-github-in-grafana
+        # auth.github:
+        #   enabled: true
+        #   allow_sign_up: false
+        #   scopes: user:email,read:org
+        #   auth_url: https://github.com/login/oauth/authorize
+        #   token_url: https://github.com/login/oauth/access_token
+        #   api_url: https://api.github.com/user
+        #    team_ids:
+        #    allowed_organizations:
+        #    client_id:
+        #    client_secret:
+        ingress:
+          enabled: true
+          # For Kubernetes >= 1.18 you should specify the ingress-controller via the field ingressClassName
+          # See https://kubernetes.io/blog/2020/04/02/improvements-to-the-ingress-api-in-kubernetes-1.18/#specifying-the-class-of-an-ingress
+          ingressClassName: nginx
+          # Values can be templated
+          annotations:
+            cert-manager.io/issuer: letsencrypt-staging
+            kubernetes.io/tls-acme: "true"
+            acme.cert-manager.io/http01-edit-in-place: "true"
+            nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+            nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+            gethomepage.dev/description: Grafana
+            gethomepage.dev/enabled: "true"
+            gethomepage.dev/group: Tools
+            gethomepage.dev/icon: grafana.png
+            gethomepage.dev/name: Grafana
+          labels: {}
+          path: /
+        
+          ## pathType is only for k8s >= 1.1=
+          pathType: Prefix
+        
+          hosts:
+            - grafana.$YOUR_DOMAIN_NAME.com
+          ## Extra paths to prepend to every host configuration. This is useful when working with annotation based services.
+          extraPaths: []
+          # - path: /*
+          #   backend:
+          #     serviceName: ssl-redirect
+          #     servicePort: use-annotation
+          ## Or for k8s > 1.19
+          # - path: /*
+          #   pathType: Prefix
+          #   backend:
+          #     service:
+          #       name: ssl-redirect
+          #       port:
+          #         name: use-annotation
+        
+        
+          tls:
+            - hosts:
+              - "grafana.$YOUR_DOMAIN_NAME.com"
+              secretName: grafana-tls
+        datasources:
+          datasources.yaml:
+            apiVersion: 1
+            datasources:
+              - name: Prometheus
+                type: prometheus
+                url: http://prometheus-server.monitoring.svc.cluster.local
+                access: proxy
+                isDefault: true
+              - name: loki
+                type: loki
+                url: http://loki.monitoring.svc.cluster.local
+                access: proxy
+        dashboardProviders:
+          dashboardproviders.yaml:
+            apiVersion: 1
+            providers:
+              - name: "default"
+                orgId: 1
+                folder: ""
+                type: file
+                disableDeletion: false
+                editable: true
+                options:
+                  path: /var/lib/grafana/dashboards/default
+        dashboards:
+          default:
+            kubernetes:
+              gnetId: 10000
+              revision: 1
+              datasource: Prometheus
+            k3s:
+              gnetId: 15282
+              revision: 1
+              datasource: Prometheus
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

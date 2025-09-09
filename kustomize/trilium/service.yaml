@@ -1,0 +1,43 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: trilium-notes
+    app.kubernetes.io/name: trilium-notes
+    argocd.argoproj.io/instance: trilium-notes
+  name: trilium-notes
+  namespace: trilium
+spec:
+  ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app.kubernetes.io/instance: trilium-notes
+    app.kubernetes.io/name: trilium-notes
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: trilium-notes
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: trilium-notes
+    app.kubernetes.io/version: 0.47.2
+    argocd.argoproj.io/instance: trilium-notes
+    helm.sh/chart: trilium-notes-0.1.2
+  name: trilium-notes-headless
+  namespace: trilium
+spec:
+  clusterIP: None
+  ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app.kubernetes.io/instance: trilium-notes
+    app.kubernetes.io/name: trilium-notes

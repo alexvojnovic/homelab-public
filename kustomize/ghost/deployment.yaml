@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ghost
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ghost
+  template:
+    metadata:
+      labels:
+        app: ghost
+    spec:
+      containers:
+      - name: ghost
+        image: ghost:5
+        ports:
+        - containerPort: 2368
+        env:
+          - name: url
+            value: "https://blog.$YOUR_DOMAIN_NAME.com"
+          - name: admin__url
+            value: "https://blog.$YOUR_DOMAIN_NAME.com"
+          - name: spam__member_login__minWait
+            value: "60"
+          - name: spam__member_login__maxWait
+            value: "120"
+          - name: spam__member_login__freeRetries
+            value: "80"
+          - name: spam__send_verification_code__minWait
+            value: "60"
+          - name: spam__send_verification_code__maxWait
+            value: "120"
+          - name: spam__send_verification_code__freeRetries
+            value: "80"
+          - name: spam__user_verification__minWait
+            value: "60"
+          - name: spam__user_verification__maxWait
+            value: "120"
+          - name: spam__user_verification__freeRetries
+            value: "80"
+        volumeMounts:
+        - name: ghost-content
+          mountPath: /var/lib/ghost/content
+        - name: config
+          mountPath: /var/lib/ghost/config.production.json
+          subPath: config.production.json
+      volumes:
+      - name: ghost-content
+        persistentVolumeClaim:
+          claimName: ghost-content-pvc
+      - name: config
+        configMap:
+          name: ghost-config
+          items:
+          - key: config.json
+            path: config.production.json
